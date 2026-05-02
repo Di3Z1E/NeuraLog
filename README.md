@@ -22,30 +22,30 @@
 
 ## ⚡ Overview
 
-**NeuraLog** is a production-grade Kubernetes-native log aggregation platform. It discovers running pods via Kubernetes Informers, streams their logs to centralised NFS storage with automatic sensitive-data redaction, and serves a sleek dark-theme web UI with real-time WebSocket streaming and historical search — all with zero sidecars and a single Helm install.
+**NeuraLog** is a production-grade Kubernetes-native log aggregation platform. It discovers running pods via Kubernetes Informers, streams their logs to centralised NFS storage with automatic sensitive-data redaction, and serves a sleek dark-theme web UI with real-time WebSocket streaming and historical search - all with zero sidecars and a single Helm install.
 
 > [!WARNING]
-> **v0.1.0 — actively stabilising.** The collector, store, and WebSocket APIs are functional but not yet covered by a stability guarantee. Pin image tags in production and review your NFS configuration before deploying.
+> **v0.1.0 - actively stabilising.** The collector, store, and WebSocket APIs are functional but not yet covered by a stability guarantee. Pin image tags in production and review your NFS configuration before deploying.
 
 ### 🔥 Key Features
 
-- ⚡ **Informer-Based Discovery** — pod events delivered in milliseconds via Kubernetes watch API, no polling
-- 🔒 **Sensitive-Data Redaction** — JWT, Bearer tokens, AWS keys, passwords, DB connection strings, credit card numbers stripped before hitting disk or the wire
-- 🌐 **Live WebSocket Streaming** — real-time log tail with exponential-backoff reconnect and 10 k-line virtual scroll
-- 📦 **Zero Sidecars** — single Deployment, no DaemonSet, no admission webhooks, no mutations
-- 🗄️ **NFS-Native Storage** — log files are directly downloadable, grep-able, and served via `http.ServeContent` with no memory buffering
-- 🧹 **Automated Retention** — same binary, `janitor` subcommand, Kubernetes CronJob, configurable TTL
-- 🛡️ **Hardened by Default** — `distroless/static:nonroot`, `readOnlyRootFilesystem`, dropped capabilities, NetworkPolicy
+- ⚡ **Informer-Based Discovery** - pod events delivered in milliseconds via Kubernetes watch API, no polling
+- 🔒 **Sensitive-Data Redaction** - JWT, Bearer tokens, AWS keys, passwords, DB connection strings, credit card numbers stripped before hitting disk or the wire
+- 🌐 **Live WebSocket Streaming** - real-time log tail with exponential-backoff reconnect and 10 k-line virtual scroll
+- 📦 **Zero Sidecars** - single Deployment, no DaemonSet, no admission webhooks, no mutations
+- 🗄️ **Persistent Storage** - log files are directly downloadable, grep-able, and served via `http.ServeContent` with no memory buffering
+- 🧹 **Automated Retention** - same binary, `janitor` subcommand, Kubernetes CronJob, configurable TTL
+- 🛡️ **Hardened by Default** - `distroless/static:nonroot`, `readOnlyRootFilesystem`, dropped capabilities, NetworkPolicy
 
 ---
 
 ## 💎 Why NeuraLog?
 
-- 🚫 **No heavy stack** — no Fluentd, no Fluentbit, no Loki, no Elasticsearch
-- 🔍 **Audit-friendly** — redaction runs before any write; `[REDACTED:TYPE]` tokens are visible in the UI so you know exactly what was masked
-- 🧩 **Single Helm install** — RBAC, PV/PVC, Ingress, HPA, NetworkPolicy all in one chart
-- ⚙️ **Operator-friendly** — every config value is an env var; override via ConfigMap or Helm values
-- 📊 **Scales horizontally** — `ReadWriteMany` NFS means multiple replicas read the same files; WebSocket clients each connect to their pod replica independently
+- 🚫 **No heavy stack** - no Fluentd, no Fluentbit, no Loki, no Elasticsearch
+- 🔍 **Audit-friendly** - redaction runs before any write; `[REDACTED:TYPE]` tokens are visible in the UI so you know exactly what was masked
+- 🧩 **Single Helm install** - RBAC, PV/PVC, Ingress, HPA, NetworkPolicy all in one chart
+- ⚙️ **Operator-friendly** - every config value is an env var; override via ConfigMap or Helm values
+- 📊 **Scales horizontally** - shared storage means multiple replicas read the same files; WebSocket clients each connect to their pod replica independently
 
 ---
 
@@ -88,7 +88,7 @@
 git clone https://github.com/Di3Z1E/neuralog
 cd neuralog
 
-# First build — generate go.sum
+# First build - generate go.sum
 cd collector && go mod tidy && cd ..
 
 # Start full stack with hot-reload
@@ -113,7 +113,7 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEURALOG_LOG_BASE_PATH` | `/mnt/logs` | NFS mount path for log storage |
+| `NEURALOG_LOG_BASE_PATH` | `/mnt/logs` | Base path for log storage |
 | `NEURALOG_LISTEN_ADDR` | `:8080` | HTTP server address |
 | `NEURALOG_EXCLUDE_NAMESPACES` | `log-system,kube-system` | Comma-separated namespaces to skip |
 | `NEURALOG_REDACT_ENABLED` | `true` | Set `false` to disable redaction (debug only) |
@@ -146,8 +146,6 @@ TAG=v0.1.0 make push
 helm upgrade --install neuralog helm/neuralog \
   --namespace log-system \
   --create-namespace \
-  --set nfs.server=10.100.102.203 \
-  --set nfs.path=/logs \
   --set image.collector.tag=v0.1.0 \
   --set image.ui.tag=v0.1.0 \
   --wait
@@ -158,17 +156,15 @@ helm upgrade --install neuralog helm/neuralog \
 
 ```yaml
 # values.override.yaml
-nfs:
-  server: "10.x.x.x"
-  path: "/logs"
-  storageSize: 100Gi
+storage:
+  size: 100Gi
 
 ingress:
   enabled: true
   host: logs.yourdomain.com
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-
+...
 collector:
   redactEnabled: "true"
   excludeNamespaces: "log-system,kube-system,monitoring"
@@ -193,15 +189,14 @@ Full reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/pods` | All tracked pods (live + historical) |
-| `GET` | `/api/v1/pods?namespace=X` | Filter by namespace |
-| `GET` | `/api/v1/logs/{ns}/{pod}` | Historical logs (`?lines=N&search=X&level=INFO`) |
-| `GET` | `/api/v1/download/{ns}/{pod}` | Download raw `.log` file |
-| `WS`  | `/ws?namespace=X&pod=Y` | Live stream — seeds 200 history lines then streams live |
+| `GET` | `/api/v1/pods` | List all tracked pods (live + historical) |
+| `GET` | `/api/v1/logs/{namespace}/{pod}` | Fetch historical logs (`?lines=N&search=S&level=L`) |
+| `GET` | `/api/v1/download/{namespace}/{pod}` | Download raw `.log` file |
+| `WS`  | `/ws?namespace=N&pod=P` | Real-time log stream (seeds 200 history lines, then streams live) |
 | `GET` | `/healthz` | Health check |
 
 > [!TIP]
-> The WebSocket endpoint handles automatic reconnection in the UI with exponential backoff (1 s → 30 s max). You can also connect with any WebSocket client: `wscat -c "ws://localhost:8080/ws?namespace=default&pod=my-app-abc"`
+> The WebSocket endpoint sends the last 200 lines immediately upon connection, then streams new lines in real-time. Automatic reconnection with exponential backoff (1s → 30s) is handled by the frontend.
 
 ---
 
@@ -256,7 +251,7 @@ Custom patterns can be added at runtime via `(*Redactor).AddPattern(expr, replac
 └─────────────────────────────────────────┘
 ```
 
-Two containers share the pod network — nginx proxies `/api/` and `/ws` to `localhost:8080` with WebSocket upgrade headers. No extra Service hop.
+Two containers share the pod network - nginx proxies `/api/` and `/ws` to `localhost:8080` with WebSocket upgrade headers. No extra Service hop.
 
 ---
 
@@ -285,7 +280,7 @@ make lint       # go vet + eslint
 make helm-lint  # helm lint with required values
 ```
 
-Distributed under the **MIT License** — see [`LICENSE`](LICENSE).
+Distributed under the **MIT License** - see [`LICENSE`](LICENSE).
 
 <div align="center">
 
