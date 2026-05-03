@@ -1,11 +1,17 @@
-import React from 'react';
 import { useFilterStore } from '../../store/filterStore';
 import type { LogLevel } from '../../types';
 
 const LEVELS: LogLevel[] = ['ALL', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
 
 export function TopBar() {
-  const { searchTerm, level, liveMode, setSearch, setLevel, setLiveMode } = useFilterStore();
+  const {
+    searchTerm, level, liveMode,
+    dateFrom, dateTo,
+    setSearch, setLevel, setLiveMode,
+    setDateFrom, setDateTo, clearDateRange,
+  } = useFilterStore();
+
+  const hasDateRange = Boolean(dateFrom || dateTo);
 
   return (
     <header className="topbar">
@@ -44,6 +50,29 @@ export function TopBar() {
             <option key={l} value={l}>{l}</option>
           ))}
         </select>
+
+        {!liveMode && (
+          <div className="topbar__daterange">
+            <input
+              className="topbar__date"
+              type="datetime-local"
+              title="From"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+            <span className="topbar__date-sep">→</span>
+            <input
+              className="topbar__date"
+              type="datetime-local"
+              title="To"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+            {hasDateRange && (
+              <button className="topbar__clear" onClick={clearDateRange} aria-label="Clear date range" title="Clear date range">✕</button>
+            )}
+          </div>
+        )}
 
         <button
           className={`topbar__live-btn${liveMode ? ' topbar__live-btn--on' : ''}`}

@@ -27,19 +27,11 @@ retention:
   schedule: "0 2 * * *"   # 02:00 UTC daily
   days: 7
 
-# ─── NFS Storage ──────────────────────────────────────────────────────────────
-nfs:
-  server: "10.100.102.203"
-  path: "/logs"
-  createPV: true          # set false if the PV already exists
-  storageSize: 100Gi
-  storageClassName: ""    # empty = no storageClass binding
-  accessMode: ReadWriteMany
-  mountOptions:
-    - nfsvers=3
-    - nolock
-    - tcp
-    - rw
+# ─── Storage ──────────────────────────────────────────────────────────────────
+storage:
+  storageClassName: "local-path"
+  storageSize: 10Gi
+  accessMode: ReadWriteOnce
 
 # ─── Service ──────────────────────────────────────────────────────────────────
 service:

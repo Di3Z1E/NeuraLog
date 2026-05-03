@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Store struct {
@@ -58,7 +59,26 @@ func (s *Store) FilePath(ns, pod string) string {
 	return filepath.Join(s.basePath, ns, pod+".log")
 }
 
-func (s *Store) ReadLines(ns, pod string, limit int, search, level string) ([]string, error) {
+// parseLineTime extracts the RFC3339Nano timestamp from a stored log line.
+// Stored format: "[container] 2006-01-02T15:04:05.999999999Z message..."
+func parseLineTime(line string) (time.Time, bool) {
+	i := strings.Index(line, "] ")
+	if i < 0 {
+		return time.Time{}, false
+	}
+	rest := line[i+2:]
+	j := strings.IndexByte(rest, ' ')
+	if j < 0 {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339Nano, rest[:j])
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
+}
+
+func (s *Store) ReadLines(ns, pod string, limit int, search, level string, from, to *time.Time) ([]string, error) {
 	f, err := os.Open(s.FilePath(ns, pod))
 	if err != nil {
 		return nil, err
@@ -70,6 +90,16 @@ func (s *Store) ReadLines(ns, pod string, limit int, search, level string) ([]st
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
+		if from != nil || to != nil {
+			if t, ok := parseLineTime(line); ok {
+				if from != nil && t.Before(*from) {
+					continue
+				}
+				if to != nil && t.After(*to) {
+					continue
+				}
+			}
+		}
 		if search != "" && !strings.Contains(strings.ToLower(line), strings.ToLower(search)) {
 			continue
 		}

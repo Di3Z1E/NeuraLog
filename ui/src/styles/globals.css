@@ -173,6 +173,29 @@ html, body, #root {
 }
 .topbar__level-select:focus { border-color: var(--border-focus); }
 
+.topbar__daterange {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.topbar__date {
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+.topbar__date:focus { border-color: var(--border-focus); }
+.topbar__date-sep {
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0 2px;
+}
+
 .topbar__live-btn {
   display: flex;
   align-items: center;
@@ -470,8 +493,8 @@ html, body, #root {
 }
 .log-line__text {
   flex: 1;
-  white-space: pre-wrap;
-  word-break: break-all;
+  white-space: pre;
+  overflow: hidden;
 }
 
 /* Level overrides */

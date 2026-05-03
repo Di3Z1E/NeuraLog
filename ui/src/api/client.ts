@@ -24,6 +24,16 @@ export function buildWsUrl(namespace: string, pod: string): string {
   return `${proto}://${window.location.host}/ws?namespace=${encodeURIComponent(namespace)}&pod=${encodeURIComponent(pod)}`;
 }
 
-export function buildDownloadUrl(namespace: string, pod: string): string {
-  return `/api/v1/download/${encodeURIComponent(namespace)}/${encodeURIComponent(pod)}`;
+export function buildDownloadUrl(
+  namespace: string,
+  pod: string,
+  from?: string,
+  to?: string,
+): string {
+  let url = `/api/v1/download/${encodeURIComponent(namespace)}/${encodeURIComponent(pod)}`;
+  const p = new URLSearchParams();
+  if (from) p.set('from', from);
+  if (to) p.set('to', to);
+  const qs = p.toString();
+  return qs ? url + '?' + qs : url;
 }

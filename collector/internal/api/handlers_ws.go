@@ -29,7 +29,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 	// Send recent history to seed the client's view before live lines start
 	if ns != "" && pod != "" {
-		if lines, err := s.store.ReadLines(ns, pod, 200, "", ""); err == nil {
+		if lines, err := s.store.ReadLines(ns, pod, 200, "", "", nil, nil); err == nil {
 			for _, line := range lines {
 				conn.SetWriteDeadline(time.Now().Add(wsWriteDeadline))
 				if err := conn.WriteMessage(1, []byte(line)); err != nil {

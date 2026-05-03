@@ -1,4 +1,3 @@
-import React from 'react';
 import type { PodInfo } from '../../types';
 
 function dotClass(status: string): string {

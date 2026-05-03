@@ -27,9 +27,9 @@ Version:    {{ .Chart.AppVersion }}
 
 ━━━ Storage ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  NFS server:  {{ .Values.nfs.server }}
-  NFS path:    {{ .Values.nfs.path }}
-  Retention:   {{ .Values.retention.days }} days (janitor: {{ .Values.retention.schedule }})
-  Redaction:   {{ .Values.collector.redactEnabled }}
+  StorageClass: {{ .Values.storage.storageClassName }}
+  Size:         {{ .Values.storage.storageSize }}
+  Retention:    {{ .Values.retention.days }} days (janitor: {{ .Values.retention.schedule }})
+  Redaction:    {{ .Values.collector.redactEnabled }}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

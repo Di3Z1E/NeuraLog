@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePods } from '../../api/pods';
 import { PodBadge } from '../pods/PodBadge';
 import { useFilterStore } from '../../store/filterStore';

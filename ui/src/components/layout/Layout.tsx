@@ -1,4 +1,3 @@
-import React from 'react';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { LogViewer } from '../logs/LogViewer';

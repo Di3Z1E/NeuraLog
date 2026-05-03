@@ -42,7 +42,6 @@ lint: ## Lint Go and TypeScript
 
 helm-lint: ## Lint the Helm chart
 	helm lint $(HELM_CHART) \
-	  --set nfs.server=10.0.0.1 \
 	  --set image.collector.tag=test \
 	  --set image.ui.tag=test
 

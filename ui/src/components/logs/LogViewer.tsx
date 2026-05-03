@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { LogLine } from './LogLine';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useLogBuffer } from '../../hooks/useLogBuffer';
-import { useLogs } from '../../api/logs';
+import { useLogs, toRFC3339 } from '../../api/logs';
 import { useFilterStore } from '../../store/filterStore';
 import { buildDownloadUrl } from '../../api/client';
 
@@ -15,6 +15,8 @@ export function LogViewer() {
     level,
     liveMode,
     tailMode,
+    dateFrom,
+    dateTo,
     setTailMode,
   } = useFilterStore();
 
@@ -26,11 +28,16 @@ export function LogViewer() {
     clearLines();
   }, [ns, pod, clearLines]);
 
+  const fromRFC = toRFC3339(dateFrom);
+  const toRFC = toRFC3339(dateTo);
+
   // Historical logs for non-live mode
   const { data: historyLines } = useLogs(ns ?? '', pod ?? '', {
     lines: 2000,
     search: liveMode ? undefined : searchTerm,
     level: liveMode ? undefined : level,
+    from: liveMode ? undefined : (fromRFC || undefined),
+    to: liveMode ? undefined : (toRFC || undefined),
   });
 
   useEffect(() => {
@@ -95,6 +102,13 @@ export function LogViewer() {
       ? '◌ CONNECTING'
       : '✕ DISCONNECTED';
 
+  const downloadUrl = buildDownloadUrl(
+    ns,
+    pod,
+    !liveMode && fromRFC ? fromRFC : undefined,
+    !liveMode && toRFC ? toRFC : undefined,
+  );
+
   return (
     <div className="log-viewer">
       <div className="log-viewer__header">
@@ -112,7 +126,7 @@ export function LogViewer() {
           <span className="log-viewer__count">{filtered.length.toLocaleString()} lines</span>
           <a
             className="log-viewer__download"
-            href={buildDownloadUrl(ns, pod)}
+            href={downloadUrl}
             download
           >
             ↓ Download
