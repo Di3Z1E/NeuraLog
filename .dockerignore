@@ -1,0 +1,13 @@
+**/.git
+**/.gitignore
+**/node_modules
+**/dist
+**/.DS_Store
+**/coverage.out
+**/*.test
+helm/
+scripts/
+docker-compose*.yml
+Makefile
+README.md
+*.md

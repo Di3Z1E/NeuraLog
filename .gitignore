@@ -1,0 +1,26 @@
+# Go
+collector/vendor/
+collector/coverage.out
+collector/*.test
+
+# Node
+ui/node_modules/
+ui/dist/
+ui/.env.local
+
+# Docker
+.env
+
+# Helm
+*.tgz
+helm/neuralog/charts/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Personal local dev customizations (git-ignore your own edits to the override file)
+# docker-compose.override.yml.local
