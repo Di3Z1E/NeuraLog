@@ -1,0 +1,44 @@
+{{- if .Values.nfs.createPV }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "neuralog.fullname" . }}-logs-pv
+  labels:
+    {{- include "neuralog.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.nfs.storageSize }}
+  volumeMode: Filesystem
+  accessModes:
+    - {{ .Values.nfs.accessMode }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.nfs.storageClassName | quote }}
+  claimRef:
+    name: {{ include "neuralog.fullname" . }}-logs-pvc
+    namespace: {{ include "neuralog.namespace" . }}
+  mountOptions:
+    {{- range .Values.nfs.mountOptions }}
+    - {{ . }}
+    {{- end }}
+  nfs:
+    server: {{ .Values.nfs.server | quote }}
+    path: {{ .Values.nfs.path | quote }}
+{{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "neuralog.fullname" . }}-logs-pvc
+  namespace: {{ include "neuralog.namespace" . }}
+  labels:
+    {{- include "neuralog.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.nfs.accessMode }}
+  storageClassName: {{ .Values.nfs.storageClassName | quote }}
+  {{- if .Values.nfs.createPV }}
+  volumeName: {{ include "neuralog.fullname" . }}-logs-pv
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.nfs.storageSize }}

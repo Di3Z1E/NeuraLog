@@ -1,0 +1,57 @@
+{{- if .Values.retention.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "neuralog.fullname" . }}-janitor
+  namespace: {{ include "neuralog.namespace" . }}
+  labels:
+    {{- include "neuralog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: janitor
+spec:
+  schedule: {{ .Values.retention.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "neuralog.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: janitor
+        spec:
+          serviceAccountName: {{ include "neuralog.serviceAccountName" . }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          restartPolicy: OnFailure
+          containers:
+            - name: janitor
+              image: {{ include "neuralog.collectorImage" . }}
+              imagePullPolicy: {{ .Values.image.collector.pullPolicy }}
+              command: ["/neuralog", "janitor"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "neuralog.fullname" . }}-config
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: logs
+                  mountPath: {{ .Values.collector.logBasePath }}
+          volumes:
+            - name: logs
+              persistentVolumeClaim:
+                claimName: {{ include "neuralog.fullname" . }}-logs-pvc
+{{- end }}

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: neuralog
+description: Kubernetes-native real-time log aggregation platform with sensitive-data redaction and a dark web UI
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - logging
+  - kubernetes
+  - observability
+  - log-aggregation
+home: https://github.com/Di3Z1E/neuralog
+sources:
+  - https://github.com/Di3Z1E/neuralog
+maintainers:
+  - name: Di3Z1E
+    url: https://github.com/Di3Z1E

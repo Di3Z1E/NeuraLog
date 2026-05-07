@@ -1,0 +1,35 @@
+╔══════════════════════════════════════════════════════╗
+║              NeuraLog deployed!                      ║
+╚══════════════════════════════════════════════════════╝
+
+Namespace:  {{ include "neuralog.namespace" . }}
+Release:    {{ .Release.Name }}
+Version:    {{ .Chart.AppVersion }}
+
+━━━ Access the UI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+  https://{{ .Values.ingress.host }}
+{{- else }}
+  Forward the service locally:
+
+    kubectl port-forward -n {{ include "neuralog.namespace" . }} \
+      svc/{{ include "neuralog.fullname" . }} 8080:{{ .Values.service.port }}
+
+  Then open: http://localhost:8080
+{{- end }}
+
+━━━ Check collector logs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  kubectl logs -n {{ include "neuralog.namespace" . }} \
+    -l app.kubernetes.io/instance={{ .Release.Name }} \
+    -c collector -f
+
+━━━ Storage ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  NFS server:  {{ .Values.nfs.server }}
+  NFS path:    {{ .Values.nfs.path }}
+  Retention:   {{ .Values.retention.days }} days (janitor: {{ .Values.retention.schedule }})
+  Redaction:   {{ .Values.collector.redactEnabled }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

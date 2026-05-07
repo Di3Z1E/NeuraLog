@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "neuralog.fullname" . }}-config
+  namespace: {{ include "neuralog.namespace" . }}
+  labels:
+    {{- include "neuralog.labels" . | nindent 4 }}
+data:
+  NEURALOG_LOG_BASE_PATH:       {{ .Values.collector.logBasePath | quote }}
+  NEURALOG_LISTEN_ADDR:         {{ .Values.collector.listenAddr | quote }}
+  NEURALOG_EXCLUDE_NAMESPACES:  {{ .Values.collector.excludeNamespaces | quote }}
+  NEURALOG_REDACT_ENABLED:      {{ .Values.collector.redactEnabled | quote }}
+  NEURALOG_RETENTION_DAYS:      {{ .Values.retention.days | quote }}

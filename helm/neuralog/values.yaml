@@ -1,0 +1,101 @@
+# ─── Images ───────────────────────────────────────────────────────────────────
+image:
+  collector:
+    repository: ghcr.io/di3z1e/neuralog-collector
+    tag: ""            # defaults to Chart.AppVersion
+    pullPolicy: IfNotPresent
+  ui:
+    repository: ghcr.io/di3z1e/neuralog-ui
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# ─── Namespace ────────────────────────────────────────────────────────────────
+namespaceOverride: "log-system"  # leave empty to use Release.Namespace
+
+# ─── Collector config ─────────────────────────────────────────────────────────
+collector:
+  logBasePath: /mnt/logs
+  listenAddr: ":8080"
+  excludeNamespaces: "log-system,kube-system"
+  redactEnabled: "true"   # "false" to disable for debugging
+
+# ─── Retention ────────────────────────────────────────────────────────────────
+retention:
+  enabled: true
+  schedule: "0 2 * * *"   # 02:00 UTC daily
+  days: 7
+
+# ─── NFS Storage ──────────────────────────────────────────────────────────────
+nfs:
+  server: "10.100.102.203"
+  path: "/logs"
+  createPV: true          # set false if the PV already exists
+  storageSize: 100Gi
+  storageClassName: ""    # empty = no storageClass binding
+  accessMode: ReadWriteMany
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - tcp
+    - rw
+
+# ─── Service ──────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 80
+
+# ─── Ingress ──────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: neuralog.example.com
+  tls: []
+    # - secretName: neuralog-tls
+    #   hosts:
+    #     - neuralog.example.com
+
+# ─── Resources ────────────────────────────────────────────────────────────────
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# ─── Autoscaling ──────────────────────────────────────────────────────────────
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+# ─── Network Policy ───────────────────────────────────────────────────────────
+networkPolicy:
+  enabled: true
+
+# ─── Service Account ──────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  name: ""             # defaults to fullname
+  annotations: {}
+
+# ─── Pod Security ─────────────────────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# ─── Miscellaneous ────────────────────────────────────────────────────────────
+replicaCount: 1
+nameOverride: ""
+fullnameOverride: ""
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
