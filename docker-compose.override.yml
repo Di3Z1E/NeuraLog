@@ -1,0 +1,30 @@
+# Local dev overrides — hot-reload, source mounts, relaxed settings.
+# This file is never committed to CI and is git-ignored in prod deployments.
+
+services:
+  collector:
+    build:
+      target: builder            # stop at builder stage for faster rebuilds
+    image: neuralog-collector:local
+    command: ["go", "run", "./cmd/neuralog", "serve"]
+    working_dir: /src
+    volumes:
+      - ./collector:/src:ro      # source mount — rebuild manually with `go run`
+      - log-data:/mnt/logs
+      - ${HOME}/.kube:/root/.kube:ro
+    environment:
+      NEURALOG_REDACT_ENABLED: "false"   # easier to debug locally
+      NEURALOG_LOG_BASE_PATH: /mnt/logs
+      NEURALOG_LISTEN_ADDR: ":8080"
+
+  ui:
+    image: node:20-alpine
+    working_dir: /app
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    volumes:
+      - ./ui:/app
+    ports:
+      - "3000:3000"     # use Vite dev server directly (hot reload)
+      - "80:80"         # disable by commenting if using port 3000
+    environment:
+      NODE_ENV: development

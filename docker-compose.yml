@@ -1,0 +1,38 @@
+services:
+  collector:
+    build:
+      context: .
+      dockerfile: docker/collector.Dockerfile
+    image: ghcr.io/di3z1e/neuralog-collector:dev
+    ports:
+      - "8080:8080"
+    environment:
+      NEURALOG_LOG_BASE_PATH: /mnt/logs
+      NEURALOG_LISTEN_ADDR: ":8080"
+      NEURALOG_RETENTION_DAYS: "7"
+      NEURALOG_REDACT_ENABLED: "true"
+      # Point at a real cluster:  KUBECONFIG: /root/.kube/config
+    volumes:
+      - log-data:/mnt/logs
+      - ${HOME}/.kube:/root/.kube:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/neuralog", "healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/ui.Dockerfile
+    image: ghcr.io/di3z1e/neuralog-ui:dev
+    ports:
+      - "80:80"
+    depends_on:
+      collector:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  log-data:
