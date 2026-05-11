@@ -66,6 +66,10 @@ autoscaling:
   maxReplicas: 3
   targetCPUUtilizationPercentage: 70
 
+# ─── NFS ──────────────────────────────────────────────────────────────────────
+nfs:
+  server: ""   # NFS server IP; when set, a dedicated egress rule is added to the NetworkPolicy
+
 # ─── Network Policy ───────────────────────────────────────────────────────────
 networkPolicy:
   enabled: true

@@ -28,6 +28,7 @@ spec:
         - port: 443
           protocol: TCP
 
+    {{- if .Values.nfs.server }}
     # NFS server
     - to:
         - ipBlock:
@@ -35,6 +36,7 @@ spec:
       ports:
         - port: 2049
           protocol: TCP
+    {{- end }}
 
     # DNS
     - ports:
