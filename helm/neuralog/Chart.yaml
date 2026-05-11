@@ -2,8 +2,8 @@ apiVersion: v2
 name: neuralog
 description: Kubernetes-native real-time log aggregation platform with sensitive-data redaction and a dark web UI
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
 keywords:
   - logging
   - kubernetes
