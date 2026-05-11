@@ -6,7 +6,7 @@
 
 <br/>
 
-[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?style=for-the-badge&logo=go&logoColor=white&labelColor=1a1a1a)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white&labelColor=1a1a1a)](https://go.dev)
 [![Helm](https://img.shields.io/badge/Helm-3.x-0F1689?style=for-the-badge&logo=helm&logoColor=white&labelColor=1a1a1a)](helm/neuralog)
 [![License](https://img.shields.io/github/license/Di3Z1E/NeuraLog?style=for-the-badge&color=818cf8&labelColor=1a1a1a)](LICENSE)
 
@@ -89,7 +89,7 @@
 
 - Docker + `docker compose`
 - A `~/.kube/config` pointing at a live cluster (for local dev)
-- Go 1.23+ (for building from source)
+- Go 1.25+ (for building from source)
 - Node 20+ (for UI development)
 
 ### Local Development
