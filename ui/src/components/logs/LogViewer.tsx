@@ -87,20 +87,21 @@ export function LogViewer() {
     return (
       <div className="log-viewer log-viewer--empty">
         <div className="log-viewer__empty-state">
-          <div className="log-viewer__empty-icon">⬡</div>
-          <div className="log-viewer__empty-title">No pod selected</div>
-          <div className="log-viewer__empty-sub">Pick a namespace and pod from the sidebar to start viewing logs</div>
+          <div className="log-viewer__empty-glow" />
+          <svg className="log-viewer__empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+          </svg>
+          <div className="log-viewer__empty-title">Select a pod</div>
+          <div className="log-viewer__empty-sub">Choose a namespace and pod from the sidebar to start viewing logs</div>
         </div>
       </div>
     );
   }
 
   const statusLabel =
-    status === 'open'
-      ? '● LIVE'
-      : status === 'connecting'
-      ? '◌ CONNECTING'
-      : '✕ DISCONNECTED';
+    status === 'open' ? 'LIVE'
+    : status === 'connecting' ? 'CONNECTING'
+    : 'DISCONNECTED';
 
   const downloadUrl = buildDownloadUrl(
     ns,
