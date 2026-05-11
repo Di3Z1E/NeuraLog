@@ -1,0 +1,7 @@
+title = "NeuraLog Gitleaks Config"
+
+[allowlist]
+  description = "Test fixture strings that intentionally look like secrets"
+  paths = [
+    '''collector/internal/redactor/redactor_test\.go''',
+  ]
