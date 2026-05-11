@@ -33,7 +33,7 @@ jobs:
 
       - uses: azure/setup-helm@v4
         with:
-          version: '3.14.x'
+          version: 'v3.14.4'
 
       - name: Helm lint
         run: |
@@ -134,7 +134,7 @@ jobs:
 
       - uses: azure/setup-helm@v4
         with:
-          version: '3.14.x'
+          version: 'v3.14.4'
 
       - name: Package Helm chart
         run: |
