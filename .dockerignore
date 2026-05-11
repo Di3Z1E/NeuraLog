@@ -6,7 +6,6 @@
 **/coverage.out
 **/*.test
 helm/
-scripts/
 docker-compose*.yml
 Makefile
 README.md

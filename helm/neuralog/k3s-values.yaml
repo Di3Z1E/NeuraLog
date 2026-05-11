@@ -1,12 +1,7 @@
 image:
-  collector:
-    repository: localhost:5000/neuralog-collector
-    tag: "dev"
-    pullPolicy: Always
-  ui:
-    repository: localhost:5000/neuralog-ui
-    tag: "dev"
-    pullPolicy: Always
+  repository: localhost:5000/neuralog
+  tag: "dev"
+  pullPolicy: Always
 
 storage:
   storageClassName: "local-path"
@@ -15,7 +10,7 @@ storage:
 
 service:
   type: NodePort
-  port: 80
+  port: 8080
 
 ingress:
   enabled: false
