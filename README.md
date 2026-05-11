@@ -1,85 +1,29 @@
-<div align="center">
+# NeuraLog
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,6,11,6,6,11,30,11,6&height=200&section=header&text=NeuraLog&fontSize=80&fontColor=818cf8&fontAlignY=45&desc=Kubernetes-Native%20Real-Time%20Log%20Aggregation&descSize=22&descColor=a5b4fc&descAlignY=70&animation=fadeIn" width="100%" />
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![Helm](https://img.shields.io/badge/Helm-3.x-0F1689?style=flat-square&logo=helm&logoColor=white)](helm/neuralog)
+[![License](https://img.shields.io/github/license/Di3Z1E/NeuraLog?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Di3Z1E/NeuraLog?style=flat-square)](https://github.com/Di3Z1E/NeuraLog/releases)
 
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=22&duration=3000&pause=1000&color=818cf8&center=true&vCenter=true&width=640&lines=Real-Time+K8s+Log+Streaming+%E2%9A%A1;Configure+Everything+from+the+UI+%E2%9A%99%EF%B8%8F;Sensitive+Data+Redaction+%F0%9F%94%92;Log+Rotation+%C2%B7+Storage+Quota+%F0%9F%97%84%EF%B8%8F;Zero+Sidecars+%C2%B7+Single+Helm+Install+%F0%9F%94%8D" alt="Typing SVG" />
-
-<br/>
-
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white&labelColor=1a1a1a)](https://go.dev)
-[![Helm](https://img.shields.io/badge/Helm-3.x-0F1689?style=for-the-badge&logo=helm&logoColor=white&labelColor=1a1a1a)](helm/neuralog)
-[![License](https://img.shields.io/github/license/Di3Z1E/NeuraLog?style=for-the-badge&color=818cf8&labelColor=1a1a1a)](LICENSE)
-
-<br/>
-
-[![CI - Collector](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-collector.yml/badge.svg)](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-collector.yml)
-[![CI - UI](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-ui.yml/badge.svg)](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-ui.yml)
-[![CI - Helm](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-helm.yml/badge.svg)](https://github.com/Di3Z1E/NeuraLog/actions/workflows/ci-helm.yml)
-[![Security](https://github.com/Di3Z1E/NeuraLog/actions/workflows/security.yml/badge.svg)](https://github.com/Di3Z1E/NeuraLog/actions/workflows/security.yml)
-
-<br/>
-
-<a href="#-quick-start"><b>Quick Start</b></a> • <a href="#%EF%B8%8F-settings--runtime-config"><b>Settings</b></a> • <a href="#-api"><b>API Reference</b></a> • <a href="#-redaction"><b>Redaction</b></a> • <a href="#%EF%B8%8F-helm-deployment"><b>Helm Deployment</b></a>
-
-</div>
+Kubernetes-native log aggregation with real-time streaming, sensitive-data redaction, and a web UI — packaged as a single self-contained binary.
 
 ---
 
 ## Overview
 
-**NeuraLog** is a lightweight Kubernetes-native log aggregation platform. It discovers running pods via Kubernetes Informers, streams their logs to persistent storage with automatic sensitive-data redaction, and serves a dark-theme web UI with real-time WebSocket streaming, historical search, and a built-in settings panel to configure every operational parameter at runtime: no YAML editing, no pod restarts.
+NeuraLog discovers running pods via the Kubernetes Informer API, streams their logs to persistent storage with automatic redaction, and serves a dark-theme web UI with live WebSocket streaming, historical search, and a settings panel for runtime configuration. All operational parameters can be changed from the UI without restarting the pod.
 
-> [!NOTE]
-> **v0.2.0** - The collector, store, and WebSocket APIs are stable for production use. Pin image tags and review storage configuration before deploying. Single self-contained binary: no sidecar, no nginx.
+The Go binary embeds the compiled React frontend. A single `distroless/static:nonroot` container handles the API, WebSocket stream, and SPA — no sidecar, no nginx, no DaemonSet.
 
-### Key Features
+## Features
 
-- **UI-Driven Runtime Config**: change storage quota, log rotation, retention, namespace exclusions, and redaction rules from the web UI; takes effect immediately without restarting
-- **Informer-Based Discovery**: pod events delivered in milliseconds via Kubernetes watch API, no polling
-- **Sensitive-Data Redaction**: JWT, Bearer tokens, AWS keys, passwords, DB connection strings, credit card numbers stripped before hitting disk or the wire; add custom regex patterns from the UI
-- **Live WebSocket Streaming**: real-time log tail with exponential-backoff reconnect and 10k-line virtual scroll
-- **Log Rotation & Quota**: per-pod file rotation by size, configurable history depth, hard storage cap with oldest-first eviction
-- **Zero Sidecars**: single Deployment, no DaemonSet, no admission webhooks, no mutations
-- **Automated Retention**: `janitor` subcommand runs as a CronJob; TTL is configurable from the UI
-- **Hardened by Default**: `distroless/static:nonroot`, `readOnlyRootFilesystem`, dropped capabilities, NetworkPolicy
-
----
-
-## Why NeuraLog?
-
-- **No heavy stack**: no Fluentd, no Fluentbit, no Loki, no Elasticsearch
-- **Audit-friendly**: redaction runs before any write; `[REDACTED:TYPE]` tokens are visible in the UI so you know exactly what was masked
-- **Single Helm install**: RBAC, PV/PVC, Ingress, HPA, NetworkPolicy all in one chart
-- **Zero-restart reconfiguration**: config is persisted to `.neuralog.json` on the storage volume and hot-reloaded; env vars remain supported as bootstrap values for the first boot
-- **Scales horizontally**: shared persistent storage means multiple replicas read the same files; WebSocket clients connect to their pod replica independently
-
----
-
-## Tech Stack
-
-<div align="left">
-
-**Backend** &nbsp;
-![Go](https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white)
-![client-go](https://img.shields.io/badge/client--go-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
-![gorilla/websocket](https://img.shields.io/badge/gorilla%2Fwebsocket-333?style=flat-square)
-
-**Frontend** &nbsp;
-![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
-
-**Infrastructure** &nbsp;
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
-![Helm](https://img.shields.io/badge/Helm-0F1689?style=flat-square&logo=helm&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
-![distroless](https://img.shields.io/badge/distroless-nonroot-4285F4?style=flat-square&logo=google&logoColor=white)
-
-**CI/CD** &nbsp;
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
-![GHCR](https://img.shields.io/badge/GHCR-181717?style=flat-square&logo=github&logoColor=white)
-
-</div>
+- **Real-time streaming** — WebSocket tail with 10k-line virtual scroll and exponential-backoff reconnect
+- **Sensitive-data redaction** — JWT, Bearer tokens, AWS keys, passwords, database URLs, credit card numbers stripped before any write to disk; custom regex patterns configurable from the UI
+- **Informer-based discovery** — pod events delivered in milliseconds via Kubernetes watch, no polling
+- **Runtime configuration** — storage quota, log rotation, retention, namespace exclusions, and redaction rules all changeable from the UI; no pod restart required
+- **Log rotation and quota** — per-pod file rotation by size with configurable history depth; hard storage cap with oldest-first eviction
+- **Automated retention** — `janitor` subcommand runs as a nightly CronJob; TTL is configurable from the UI
+- **Hardened defaults** — `distroless/static:nonroot`, `readOnlyRootFilesystem`, all capabilities dropped, NetworkPolicy included
 
 ---
 
@@ -87,90 +31,47 @@
 
 ### Prerequisites
 
-- Docker + `docker compose`
-- A `~/.kube/config` pointing at a live cluster (for local dev)
-- Go 1.25+ (for building from source)
-- Node 20+ (for UI development)
+- Docker and `docker compose`
+- `~/.kube/config` pointing at a live cluster
+- Go 1.25+ to build from source
+- Node 20+ for UI development
 
-### Local Development
+### Run locally
 
 ```bash
 git clone https://github.com/Di3Z1E/NeuraLog
 cd NeuraLog
-
-# Start full stack with hot-reload
 make dev
 ```
 
 | Service | URL |
 |---------|-----|
 | UI (Vite dev server) | http://localhost:3000 |
-| Collector API | http://localhost:8080 |
+| API | http://localhost:8080 |
 
-<details>
-<summary><b>Run collector only (no Docker)</b></summary>
+### Run without Docker
 
 ```bash
 cd collector
 go run ./cmd/neuralog serve
 ```
 
-Environment variables act as **bootstrap defaults** for the first run. Once `.neuralog.json` exists on the storage volume, the UI-saved config takes precedence.
+Environment variables seed the config on first boot. Once `.neuralog.json` exists on the storage volume, the UI-saved config takes precedence.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEURALOG_LOG_BASE_PATH` | `/mnt/logs` | Base path for log storage |
-| `NEURALOG_LISTEN_ADDR` | `:8080` | HTTP server address |
-| `NEURALOG_EXCLUDE_NAMESPACES` | `log-system,kube-system` | Comma-separated namespaces to skip on first boot |
-| `NEURALOG_REDACT_ENABLED` | `true` | Enable/disable redaction on first boot |
-| `NEURALOG_RETENTION_DAYS` | `7` | Retention TTL in days on first boot |
-| `KUBECONFIG` | _(in-cluster)_ | Path to kubeconfig for out-of-cluster runs |
-
-</details>
-
-<details>
-<summary><b>Run UI only (Vite dev server)</b></summary>
-
-```bash
-cd ui
-npm install
-npm run dev   # http://localhost:3000
-```
-
-The Vite dev proxy forwards `/api` and `/ws` to `localhost:8080` automatically.
-</details>
-
----
-
-## Settings & Runtime Config
-
-Click the **gear icon** in the top-right of the UI to open the Settings panel. All changes are saved to `.neuralog.json` on the storage volume and applied immediately - no pod restart required.
-
-### Storage tab
-
-| Setting | Description |
-|---------|-------------|
-| **Storage quota (GiB)** | Hard cap on total log disk usage. When exceeded, the quota watcher evicts the oldest files. Set to `0` for unlimited. |
-| **Rotation size (MB)** | Rotate a pod's `.log` file when it reaches this size. Rotated files are kept as `pod.log.1`, `pod.log.2`, and so on. Set to `0` to disable. |
-| **Rotated files to keep** | How many rotated files to retain per pod before the oldest is deleted. |
-| **Retention (days)** | The nightly janitor CronJob deletes `.log` and `.log.N` files older than this many days. |
-
-### Collection tab
-
-Add or remove **excluded namespaces**. Newly excluded namespaces have their active log streams stopped immediately; newly included namespaces are picked up on the next informer event.
-
-### Redaction tab
-
-Toggle the **master redaction switch** on or off, and manage **custom regex patterns** that are applied on top of the built-in rules. Pattern changes take effect on the next incoming log line - no restart needed.
+| `NEURALOG_LOG_BASE_PATH` | `/mnt/logs` | Base directory for log storage |
+| `NEURALOG_LISTEN_ADDR` | `:8080` | HTTP listen address |
+| `NEURALOG_EXCLUDE_NAMESPACES` | `log-system,kube-system` | Comma-separated namespaces to skip |
+| `NEURALOG_REDACT_ENABLED` | `true` | Enable sensitive-data redaction |
+| `NEURALOG_RETENTION_DAYS` | `7` | Log retention TTL in days |
+| `KUBECONFIG` | _(in-cluster)_ | Path to kubeconfig for out-of-cluster use |
 
 ---
 
 ## Helm Deployment
 
-Images are published to GitHub Container Registry on every release tag.
-
 ```bash
-# Install
 helm upgrade --install neuralog helm/neuralog \
   --namespace log-system \
   --create-namespace \
@@ -178,8 +79,7 @@ helm upgrade --install neuralog helm/neuralog \
   --wait
 ```
 
-<details>
-<summary><b>Key values to override</b></summary>
+Common overrides:
 
 ```yaml
 # values.override.yaml
@@ -188,7 +88,7 @@ storage:
   storageSize: 100Gi
 
 nfs:
-  server: "10.0.0.10"   # adds a dedicated NFS egress rule to the NetworkPolicy
+  server: "10.0.0.10"
 
 ingress:
   enabled: true
@@ -197,25 +97,42 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 
 collector:
-  redactEnabled: "true"
   excludeNamespaces: "log-system,kube-system,monitoring"
 
 retention:
   days: 14
-  schedule: "0 2 * * *"
 ```
 
 ```bash
-helm upgrade --install neuralog helm/neuralog -f values.override.yaml \
+helm upgrade --install neuralog helm/neuralog \
+  -f values.override.yaml \
   --namespace log-system --create-namespace
 ```
 
-Full reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
+Full values reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
 
-> [!TIP]
-> Env vars are only used to seed the config on the very first boot. After that, use the Settings UI - changes persist across pod restarts via `.neuralog.json` on the storage volume.
+---
 
-</details>
+## Settings
+
+Open the **gear icon** in the top-right of the UI to access runtime configuration. Changes are written to `.neuralog.json` on the storage volume and applied immediately.
+
+### Storage
+
+| Setting | Description |
+|---------|-------------|
+| Storage quota (GiB) | Hard cap on total disk usage. Exceeded quota evicts oldest files first. `0` means unlimited. |
+| Rotation size (MB) | Rotate a pod's log file at this size. Produces `pod.log.1`, `pod.log.2`, etc. `0` disables rotation. |
+| Rotated files to keep | Maximum number of rotated files to keep per pod. |
+| Retention (days) | The nightly janitor deletes log files older than this many days. |
+
+### Collection
+
+Add or remove excluded namespaces. Newly excluded namespaces stop streaming immediately; newly included ones are picked up on the next informer event.
+
+### Redaction
+
+Toggle the master redaction switch and manage custom regex patterns on top of the built-in rules. Changes take effect on the next incoming log line.
 
 ---
 
@@ -223,18 +140,15 @@ Full reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/pods` | List all tracked pods (live + historical) |
-| `GET` | `/api/v1/logs/{namespace}/{pod}` | Fetch historical logs (`?lines=N&search=S&level=L&from=T&to=T`) |
-| `GET` | `/api/v1/download/{namespace}/{pod}` | Download raw `.log` file |
-| `GET` | `/api/v1/config` | Get current runtime config (includes `storageUsedGB`) |
-| `PUT` | `/api/v1/config` | Update runtime config; hot-reloads redactor and collector exclusions |
-| `WS`  | `/ws?namespace=N&pod=P` | Real-time log stream (seeds 200 history lines, then streams live) |
+| `GET` | `/api/v1/pods` | List tracked pods — live and historical |
+| `GET` | `/api/v1/logs/{namespace}/{pod}` | Historical logs (`?lines=N&search=S&level=L&from=T&to=T`) |
+| `GET` | `/api/v1/download/{namespace}/{pod}` | Download raw log file |
+| `GET` | `/api/v1/config` | Current runtime config (includes `storageUsedGB`) |
+| `PUT` | `/api/v1/config` | Update config; hot-reloads redactor and namespace exclusions |
+| `WS`  | `/ws?namespace=N&pod=P` | Live log stream; seeds last 200 lines on connect |
 | `GET` | `/healthz` | Health check |
 
-> [!TIP]
-> The WebSocket endpoint sends the last 200 lines immediately upon connection, then streams new lines in real-time. Automatic reconnection with exponential backoff (1s to 30s) is handled by the frontend.
-
-### Config schema (`PUT /api/v1/config`)
+### Config schema
 
 ```json
 {
@@ -245,7 +159,7 @@ Full reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
   "excludeNamespaces": ["log-system", "kube-system"],
   "redactEnabled":     true,
   "customPatterns": [
-    { "id": "uuid", "pattern": "my-secret-[a-z0-9]+", "replace": "[REDACTED:CUSTOM]" }
+    { "id": "my-rule", "pattern": "secret-[a-z0-9]+", "replace": "[REDACTED:CUSTOM]" }
   ]
 }
 ```
@@ -254,23 +168,23 @@ Full reference: [`helm/neuralog/values.yaml`](helm/neuralog/values.yaml)
 
 ## Redaction
 
-All patterns run in the collector pipeline **before any write to disk or broadcast over WebSocket**. Redacted tokens appear visually distinct (`[REDACTED:TYPE]` in orange italic) in the UI.
+All patterns run in the collection pipeline before any write to disk or broadcast over WebSocket.
 
-| Pattern | Token |
-|---------|-------|
+| Pattern | Replacement |
+|---------|-------------|
 | JWT tokens | `[REDACTED:JWT]` |
 | Bearer tokens | `[REDACTED:BEARER_TOKEN]` |
-| AWS key IDs (`AKIA`/`ASIA`/`AROA`) | `[REDACTED:AWS_KEY_ID]` |
+| AWS key IDs | `[REDACTED:AWS_KEY_ID]` |
 | AWS secret keys | `[REDACTED:AWS_SECRET]` |
 | Generic API keys | `[REDACTED:API_KEY]` |
 | Passwords in log lines | `[REDACTED:PASSWORD]` |
-| Generic secrets / tokens | `[REDACTED:SECRET]` |
+| Generic secrets and tokens | `[REDACTED:SECRET]` |
 | Database URLs with credentials | `[REDACTED:DB_URL]` |
 | Basic auth in URLs | `[REDACTED:CREDENTIALS]` |
 | Private key PEM blocks | `[REDACTED:PRIVATE_KEY]` |
 | Credit card numbers | `[REDACTED:CARD]` |
 
-Custom patterns can be added at runtime via the **Settings - Redaction** tab or via `PUT /api/v1/config`.
+Custom patterns can be added from the **Settings > Redaction** tab or via `PUT /api/v1/config`.
 
 ---
 
@@ -305,87 +219,14 @@ Custom patterns can be added at runtime via the **Settings - Redaction** tab or 
 +----------------------------------------------+
 ```
 
-The Go binary embeds the compiled React UI (`//go:embed`). A single `distroless/static:nonroot` container serves the API, WebSocket stream, and SPA - no sidecar, no nginx, no extra Service hop.
-
----
-
-## CI/CD
-
-Pipelines are split by concern. Each workflow owns exactly one responsibility.
-
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `ci-collector.yml` | push/PR on `collector/**` | Go: vet, test with race detector, binary compile check |
-| `ci-ui.yml` | push/PR on `ui/**` | Node: typecheck, ESLint, Vite production build |
-| `ci-helm.yml` | push/PR on `helm/**` | Helm: strict lint, template render (default + ingress variants) |
-| `ci-docker.yml` | PR on image paths | Docker: build-only validation of the single image, no push |
-| `security.yml` | push/PR/weekly | govulncheck, Trivy filesystem + IaC scan (SARIF), Gitleaks secret scan |
-| `codeql.yml` | push/PR/weekly | GitHub CodeQL SAST for Go and TypeScript |
-| `release.yml` | tag `v*.*.*` | Gate (tests + helm lint), single image build pushed to GHCR, GitHub Release with Helm `.tgz` |
-| `helm-publish.yml` | release published | chart-releaser publishes chart to GitHub Pages |
-
-### Release flow
-
-Pushing a tag like `v0.2.0` triggers the following sequence:
-
-```
-gate (tests + helm lint)
-    |
-    +----> build (UI embedded in Go binary) ----> github-release (Helm .tgz attached)
-```
-
-Images are tagged with the full semver (`0.2.0`), the minor (`0.2`), and `latest`.
-
-### Helm repository
-
-After the first release, install the chart directly from GitHub Pages:
-
-```bash
-helm repo add neuralog https://di3z1e.github.io/NeuraLog
-helm repo update
-helm install neuralog neuralog/neuralog --namespace log-system --create-namespace
-```
-
-> [!NOTE]
-> One-time setup required for the Helm repo: create a `gh-pages` branch and enable GitHub Pages on it in the repository settings.
-
----
-
-## Comparison
-
-| | **NeuraLog** | Bash/kubectl loop |
-|---|:---:|:---:|
-| Pod discovery latency | ~ms (Informer) | up to 30s (poll) |
-| Sensitive-data redaction | yes, built-in | no |
-| Web UI | yes, dark theme + virtual scroll | no |
-| Live WebSocket streaming | yes | no |
-| Reconnect on stream drop | yes, automatic | no, manual restart |
-| Runtime config (no restart) | yes, UI + API | no |
-| Log rotation + storage quota | yes, configurable | no |
-| Distroless / non-root | yes | no, runs as root |
-| Helm chart | yes | no, raw YAML |
-| CI/CD + security scanning | yes | no |
-
 ---
 
 ## Contributing
 
-Issues and pull requests are welcome. For significant changes, open an issue first to discuss the approach.
-
 ```bash
-make test       # Go tests with race detector
+make test       # Go unit tests with race detector
 make lint       # go vet + eslint
-make helm-lint  # helm lint with required values
+make helm-lint  # Helm strict lint
 ```
 
-Distributed under the **MIT License** - see [`LICENSE`](LICENSE).
-
-<div align="center">
-
----
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,6,11,6,6,11,30,11,6&height=100&section=footer" width="100%" />
-
-*NeuraLog 2026 Di3Z1E*
-
-</div>
+Open an issue before submitting significant changes. MIT License — see [`LICENSE`](LICENSE).
