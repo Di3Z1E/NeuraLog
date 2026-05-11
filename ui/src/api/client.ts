@@ -30,7 +30,7 @@ export function buildDownloadUrl(
   from?: string,
   to?: string,
 ): string {
-  let url = `/api/v1/download/${encodeURIComponent(namespace)}/${encodeURIComponent(pod)}`;
+  const url = `/api/v1/download/${encodeURIComponent(namespace)}/${encodeURIComponent(pod)}`;
   const p = new URLSearchParams();
   if (from) p.set('from', from);
   if (to) p.set('to', to);
