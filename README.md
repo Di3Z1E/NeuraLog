@@ -29,8 +29,8 @@
 
 **NeuraLog** is a lightweight Kubernetes-native log aggregation platform. It discovers running pods via Kubernetes Informers, streams their logs to persistent storage with automatic sensitive-data redaction, and serves a dark-theme web UI with real-time WebSocket streaming, historical search, and a built-in settings panel to configure every operational parameter at runtime: no YAML editing, no pod restarts.
 
-> [!WARNING]
-> **v0.1.0 - actively stabilising.** The collector, store, and WebSocket APIs are functional but not yet covered by a stability guarantee. Pin image tags in production and review your storage configuration before deploying.
+> [!NOTE]
+> **v0.2.0** - The collector, store, and WebSocket APIs are stable for production use. Pin image tags and review storage configuration before deploying. Single self-contained binary: no sidecar, no nginx.
 
 ### Key Features
 
@@ -73,7 +73,7 @@
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689?style=flat-square&logo=helm&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
-![nginx](https://img.shields.io/badge/nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+![distroless](https://img.shields.io/badge/distroless-nonroot-4285F4?style=flat-square&logo=google&logoColor=white)
 
 **CI/CD** &nbsp;
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
@@ -174,8 +174,7 @@ Images are published to GitHub Container Registry on every release tag.
 helm upgrade --install neuralog helm/neuralog \
   --namespace log-system \
   --create-namespace \
-  --set image.collector.tag=v0.1.0 \
-  --set image.ui.tag=v0.1.0 \
+  --set image.tag=v0.2.0 \
   --wait
 ```
 
@@ -289,25 +288,24 @@ Custom patterns can be added at runtime via the **Settings - Redaction** tab or 
 |     +--------------------+                   |
 |     |   NeuraLog Pod     |                   |
 |     |                    |                   |
-|     |  [collector] <-----+-- client-go       |
-|     |       |            |                   |
-|     |  redact + write    |                   |
+|     |  [neuralog binary] |                   |
+|     |   - client-go      |  <- pod watch     |
+|     |   - redact + write |                   |
+|     |   - REST API       |  <- /api/v1/...   |
+|     |   - WebSocket      |  <- /ws           |
+|     |   - embedded UI    |  <- /             |
 |     |       |            |                   |
 |     |  [/mnt/logs]       |                   |
 |     |   +- .neuralog.json|  <- runtime config|
 |     |   +- ns/pod.log    |                   |
 |     |   +- ns/pod.log.1  |  <- rotated files |
-|     |       |            |                   |
-|     |  REST + WS + Config|                   |
-|     |       |            |                   |
-|     |  [nginx + ui] -----+-- Browser         |
 |     +--------------------+                   |
 |                                              |
 |  [CronJob: janitor]  (nightly retention)     |
 +----------------------------------------------+
 ```
 
-The collector and nginx containers share the pod network. nginx proxies `/api/` and `/ws` to `localhost:8080` with WebSocket upgrade headers - no extra Service hop.
+The Go binary embeds the compiled React UI (`//go:embed`). A single `distroless/static:nonroot` container serves the API, WebSocket stream, and SPA - no sidecar, no nginx, no extra Service hop.
 
 ---
 
@@ -320,10 +318,10 @@ Pipelines are split by concern. Each workflow owns exactly one responsibility.
 | `ci-collector.yml` | push/PR on `collector/**` | Go: vet, test with race detector, binary compile check |
 | `ci-ui.yml` | push/PR on `ui/**` | Node: typecheck, ESLint, Vite production build |
 | `ci-helm.yml` | push/PR on `helm/**` | Helm: strict lint, template render (default + ingress variants) |
-| `ci-docker.yml` | PR on image paths | Docker: build-only validation for both images, no push |
+| `ci-docker.yml` | PR on image paths | Docker: build-only validation of the single image, no push |
 | `security.yml` | push/PR/weekly | govulncheck, Trivy filesystem + IaC scan (SARIF), Gitleaks secret scan |
 | `codeql.yml` | push/PR/weekly | GitHub CodeQL SAST for Go and TypeScript |
-| `release.yml` | tag `v*.*.*` | Gate (tests + helm lint), parallel image builds pushed to GHCR, GitHub Release with Helm `.tgz` |
+| `release.yml` | tag `v*.*.*` | Gate (tests + helm lint), single image build pushed to GHCR, GitHub Release with Helm `.tgz` |
 | `helm-publish.yml` | release published | chart-releaser publishes chart to GitHub Pages |
 
 ### Release flow
@@ -333,9 +331,7 @@ Pushing a tag like `v0.2.0` triggers the following sequence:
 ```
 gate (tests + helm lint)
     |
-    +----> build-collector  ----+
-    |                           |
-    +----> build-ui  -----------+----> github-release (Helm .tgz attached)
+    +----> build (UI embedded in Go binary) ----> github-release (Helm .tgz attached)
 ```
 
 Images are tagged with the full semver (`0.2.0`), the minor (`0.2`), and `latest`.
