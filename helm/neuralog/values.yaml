@@ -1,13 +1,8 @@
-# ─── Images ───────────────────────────────────────────────────────────────────
+# ─── Image ────────────────────────────────────────────────────────────────────
 image:
-  collector:
-    repository: ghcr.io/di3z1e/neuralog-collector
-    tag: ""            # defaults to Chart.AppVersion
-    pullPolicy: IfNotPresent
-  ui:
-    repository: ghcr.io/di3z1e/neuralog-ui
-    tag: ""
-    pullPolicy: IfNotPresent
+  repository: ghcr.io/di3z1e/neuralog
+  tag: ""            # defaults to Chart.AppVersion
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
@@ -36,7 +31,7 @@ storage:
 # ─── Service ──────────────────────────────────────────────────────────────────
 service:
   type: ClusterIP
-  port: 80
+  port: 8080
 
 # ─── Ingress ──────────────────────────────────────────────────────────────────
 ingress:

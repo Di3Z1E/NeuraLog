@@ -12,5 +12,6 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
+      appProtocol: http
   selector:
     {{- include "neuralog.selectorLabels" . | nindent 4 }}

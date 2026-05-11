@@ -10,8 +10,8 @@ spec:
   selector:
     matchLabels:
       {{- include "neuralog.selectorLabels" . | nindent 6 }}
-  # Recreate because NFS ReadWriteMany is fine with multiple replicas, but
-  # we only need 1. If autoscaling is enabled, RollingUpdate is safer.
+  # Recreate because the PVC is ReadWriteOnce; RollingUpdate would leave
+  # two pods fighting over the same volume. Swap to RollingUpdate if using NFS.
   strategy:
     {{- if .Values.autoscaling.enabled }}
     type: RollingUpdate
@@ -36,29 +36,28 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
       containers:
-        # ── collector ─────────────────────────────────────────────────────────
-        - name: collector
-          image: {{ include "neuralog.collectorImage" . }}
-          imagePullPolicy: {{ .Values.image.collector.pullPolicy }}
+        - name: neuralog
+          image: {{ include "neuralog.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/neuralog", "serve"]
           envFrom:
             - configMapRef:
                 name: {{ include "neuralog.fullname" . }}-config
           ports:
-            - name: api
+            - name: http
               containerPort: 8080
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
-              port: api
+              port: http
             initialDelaySeconds: 10
             periodSeconds: 30
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /healthz
-              port: api
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
@@ -74,52 +73,11 @@ spec:
             - name: tmp
               mountPath: /tmp
 
-        # ── ui (nginx) ────────────────────────────────────────────────────────
-        - name: ui
-          image: {{ include "neuralog.uiImage" . }}
-          imagePullPolicy: {{ .Values.image.ui.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 3
-            periodSeconds: 10
-          resources:
-            limits:
-              cpu: 100m
-              memory: 64Mi
-            requests:
-              cpu: 10m
-              memory: 32Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
-            - name: nginx-cache
-              mountPath: /var/cache/nginx
-            - name: nginx-run
-              mountPath: /run
-
       volumes:
         - name: logs
           persistentVolumeClaim:
             claimName: {{ include "neuralog.fullname" . }}-logs-pvc
         - name: tmp
-          emptyDir: {}
-        - name: nginx-cache
-          emptyDir: {}
-        - name: nginx-run
           emptyDir: {}
 
       {{- with .Values.nodeSelector }}

@@ -1,35 +1,25 @@
 REGISTRY       := ghcr.io/di3z1e/neuralog
 TAG            ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-COLLECTOR_IMG  := $(REGISTRY)-collector:$(TAG)
-UI_IMG         := $(REGISTRY)-ui:$(TAG)
+IMG            := $(REGISTRY):$(TAG)
 HELM_CHART     := helm/neuralog
 NAMESPACE      ?= log-system
 RELEASE        ?= neuralog
 
-.PHONY: help build build-collector build-ui push test lint helm-lint \
-        dev dev-down deploy upgrade uninstall clean
+.PHONY: help build push test lint helm-lint dev dev-down deploy upgrade uninstall clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ── Build ──────────────────────────────────────────────────────────────────────
-build: build-collector build-ui ## Build both Docker images
-
-build-collector: ## Build the collector image
-	docker build -f docker/collector.Dockerfile -t $(COLLECTOR_IMG) .
-	docker tag $(COLLECTOR_IMG) $(REGISTRY)-collector:latest
-
-build-ui: ## Build the UI image
-	docker build -f docker/ui.Dockerfile -t $(UI_IMG) .
-	docker tag $(UI_IMG) $(REGISTRY)-ui:latest
+build: ## Build the neuralog Docker image (embeds UI)
+	docker build -f docker/neuralog.Dockerfile -t $(IMG) .
+	docker tag $(IMG) $(REGISTRY):latest
 
 # ── Push ───────────────────────────────────────────────────────────────────────
-push: build ## Build + push both images
-	docker push $(COLLECTOR_IMG)
-	docker push $(REGISTRY)-collector:latest
-	docker push $(UI_IMG)
-	docker push $(REGISTRY)-ui:latest
+push: build ## Build + push the image
+	docker push $(IMG)
+	docker push $(REGISTRY):latest
 
 # ── Test & Lint ────────────────────────────────────────────────────────────────
 test: ## Run Go tests
@@ -42,8 +32,8 @@ lint: ## Lint Go and TypeScript
 
 helm-lint: ## Lint the Helm chart
 	helm lint $(HELM_CHART) \
-	  --set image.collector.tag=test \
-	  --set image.ui.tag=test
+	  --set image.tag=test \
+	  --strict
 
 # ── Local dev ──────────────────────────────────────────────────────────────────
 dev: ## Start full stack with hot-reload (docker-compose.override.yml)
@@ -57,15 +47,13 @@ deploy: ## Install the Helm chart (first time)
 	helm upgrade --install $(RELEASE) $(HELM_CHART) \
 	  --namespace $(NAMESPACE) \
 	  --create-namespace \
-	  --set image.collector.tag=$(TAG) \
-	  --set image.ui.tag=$(TAG) \
+	  --set image.tag=$(TAG) \
 	  --wait
 
 upgrade: ## Upgrade an existing release
 	helm upgrade $(RELEASE) $(HELM_CHART) \
 	  --namespace $(NAMESPACE) \
-	  --set image.collector.tag=$(TAG) \
-	  --set image.ui.tag=$(TAG) \
+	  --set image.tag=$(TAG) \
 	  --reuse-values \
 	  --wait
 

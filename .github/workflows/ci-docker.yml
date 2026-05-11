@@ -1,6 +1,6 @@
 name: CI / Docker
 
-# Build-only check on PRs — verifies Dockerfiles stay buildable.
+# Build-only check on PRs — verifies the Dockerfile stays buildable.
 # No push. Actual image publishing is handled by release.yml.
 
 on:
@@ -13,8 +13,8 @@ on:
       - '.github/workflows/ci-docker.yml'
 
 jobs:
-  build-collector:
-    name: Build Collector Image
+  build:
+    name: Build Image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,24 +25,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/collector.Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-ui:
-    name: Build UI Image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build (no push)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/ui.Dockerfile
+          file: docker/neuralog.Dockerfile
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max

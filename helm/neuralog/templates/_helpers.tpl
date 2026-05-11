@@ -60,15 +60,8 @@ Target namespace — allows overriding the Release namespace.
 {{- end }}
 
 {{/*
-Collector image tag (falls back to appVersion).
+Image reference (falls back to appVersion).
 */}}
-{{- define "neuralog.collectorImage" -}}
-{{- printf "%s:%s" .Values.image.collector.repository (default .Chart.AppVersion .Values.image.collector.tag) }}
-{{- end }}
-
-{{/*
-UI image tag (falls back to appVersion).
-*/}}
-{{- define "neuralog.uiImage" -}}
-{{- printf "%s:%s" .Values.image.ui.repository (default .Chart.AppVersion .Values.image.ui.tag) }}
+{{- define "neuralog.image" -}}
+{{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
 {{- end }}

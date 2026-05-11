@@ -1,13 +1,8 @@
 # Local k3s test values — uses local registry, local-path storage
 image:
-  collector:
-    repository: localhost:5000/neuralog-collector
-    tag: "dev"
-    pullPolicy: Always
-  ui:
-    repository: localhost:5000/neuralog-ui
-    tag: "dev"
-    pullPolicy: Always
+  repository: localhost:5000/neuralog
+  tag: "dev"
+  pullPolicy: Always
 
 storage:
   storageClassName: "local-path"

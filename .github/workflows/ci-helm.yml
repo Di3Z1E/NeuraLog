@@ -26,8 +26,7 @@ jobs:
       - name: Lint with default values
         run: |
           helm lint helm/neuralog \
-            --set image.collector.tag=ci \
-            --set image.ui.tag=ci \
+            --set image.tag=ci \
             --strict
 
       - name: Lint with test values
@@ -47,16 +46,14 @@ jobs:
       - name: Render all templates
         run: |
           helm template neuralog helm/neuralog \
-            --set image.collector.tag=ci \
-            --set image.ui.tag=ci \
+            --set image.tag=ci \
             --namespace log-system \
             --debug
 
       - name: Render with ingress enabled
         run: |
           helm template neuralog helm/neuralog \
-            --set image.collector.tag=ci \
-            --set image.ui.tag=ci \
+            --set image.tag=ci \
             --set ingress.enabled=true \
             --set ingress.host=logs.example.com \
             --namespace log-system \
