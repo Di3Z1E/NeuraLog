@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/Di3Z1E/neuralog/internal/config"
 	"github.com/Di3Z1E/neuralog/internal/hub"
 	"github.com/Di3Z1E/neuralog/internal/redactor"
 	"github.com/Di3Z1E/neuralog/internal/store"
@@ -26,15 +28,15 @@ type PodInfo struct {
 }
 
 type Collector struct {
-	client    kubernetes.Interface
-	store     *store.Store
-	hub       *hub.Hub
-	redactor  *redactor.Redactor
-	excludeNS map[string]bool
+	client   kubernetes.Interface
+	store    *store.Store
+	hub      *hub.Hub
+	redactor *redactor.Redactor
+	cfgMgr   *config.Manager
 
 	mu     sync.RWMutex
-	pods   map[string]*PodInfo           // key: "ns/pod"
-	active map[string]context.CancelFunc // key: "ns/pod"
+	pods   map[string]*PodInfo
+	active map[string]context.CancelFunc
 }
 
 func New(
@@ -42,20 +44,16 @@ func New(
 	st *store.Store,
 	h *hub.Hub,
 	r *redactor.Redactor,
-	excludeNS []string,
+	cfgMgr *config.Manager,
 ) *Collector {
-	exc := make(map[string]bool, len(excludeNS))
-	for _, ns := range excludeNS {
-		exc[ns] = true
-	}
 	return &Collector{
-		client:    client,
-		store:     st,
-		hub:       h,
-		redactor:  r,
-		excludeNS: exc,
-		pods:      make(map[string]*PodInfo),
-		active:    make(map[string]context.CancelFunc),
+		client:   client,
+		store:    st,
+		hub:      h,
+		redactor: r,
+		cfgMgr:   cfgMgr,
+		pods:     make(map[string]*PodInfo),
+		active:   make(map[string]context.CancelFunc),
 	}
 }
 
@@ -87,8 +85,11 @@ func (c *Collector) Run(ctx context.Context) {
 				}
 			}
 			key := pod.Namespace + "/" + pod.Name
-			c.stopStream(key)
 			c.mu.Lock()
+			if cancel, ok := c.active[key]; ok {
+				cancel()
+				delete(c.active, key)
+			}
 			delete(c.pods, key)
 			c.mu.Unlock()
 		},
@@ -100,8 +101,11 @@ func (c *Collector) Run(ctx context.Context) {
 }
 
 func (c *Collector) handlePod(pod *corev1.Pod) {
-	if c.excludeNS[pod.Namespace] {
-		return
+	cfg := c.cfgMgr.Get()
+	for _, ns := range cfg.ExcludeNamespaces {
+		if strings.TrimSpace(ns) == pod.Namespace {
+			return
+		}
 	}
 	key := pod.Namespace + "/" + pod.Name
 
@@ -113,43 +117,53 @@ func (c *Collector) handlePod(pod *corev1.Pod) {
 		Node:      pod.Spec.NodeName,
 		HasLogs:   c.store.HasLogs(pod.Namespace, pod.Name),
 	}
-	c.mu.Unlock()
 
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
-		c.mu.RLock()
-		_, already := c.active[key]
-		c.mu.RUnlock()
-		if !already {
-			c.startStream(pod)
+		if _, already := c.active[key]; !already {
+			ctx, cancel := context.WithCancel(context.Background())
+			c.active[key] = cancel
+			containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
+			c.mu.Unlock()
+			for _, ctr := range containers {
+				go streamContainer(ctx, c.client, c.store, c.hub, c.redactor, pod.Namespace, pod.Name, ctr.Name)
+			}
+			slog.Info("attach", "pod", key, "containers", len(containers))
+			return
 		}
 	case corev1.PodSucceeded, corev1.PodFailed:
-		c.stopStream(key)
+		if cancel, ok := c.active[key]; ok {
+			cancel()
+			delete(c.active, key)
+			slog.Info("detach", "pod", key)
+		}
 	}
-}
-
-func (c *Collector) startStream(pod *corev1.Pod) {
-	ctx, cancel := context.WithCancel(context.Background())
-	key := pod.Namespace + "/" + pod.Name
-
-	c.mu.Lock()
-	c.active[key] = cancel
 	c.mu.Unlock()
-
-	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
-	for _, ctr := range containers {
-		go streamContainer(ctx, c.client, c.store, c.hub, c.redactor, pod.Namespace, pod.Name, ctr.Name)
-	}
-	slog.Info("attach", "pod", key, "containers", len(containers))
 }
 
-func (c *Collector) stopStream(key string) {
+// ApplyExclusions updates the namespace exclusion list and immediately stops
+// any active streams for namespaces that are now excluded.
+func (c *Collector) ApplyExclusions(excludeNS []string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if cancel, ok := c.active[key]; ok {
-		cancel()
-		delete(c.active, key)
-		slog.Info("detach", "pod", key)
+
+	exc := make(map[string]bool, len(excludeNS))
+	for _, ns := range excludeNS {
+		exc[strings.TrimSpace(ns)] = true
+	}
+
+	var stopped int
+	for key, cancel := range c.active {
+		ns := strings.SplitN(key, "/", 2)[0]
+		if exc[ns] {
+			cancel()
+			delete(c.active, key)
+			delete(c.pods, key)
+			stopped++
+		}
+	}
+	if stopped > 0 {
+		slog.Info("exclusion update: stopped streams", "count", stopped)
 	}
 }
 

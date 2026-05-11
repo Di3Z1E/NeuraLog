@@ -4,10 +4,14 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/Di3Z1E/neuralog/internal/config"
 )
 
-func Run(basePath string, retentionDays int) error {
+func Run(basePath string, cfgMgr *config.Manager) error {
+	retentionDays := cfgMgr.Get().RetentionDays
 	threshold := time.Now().AddDate(0, 0, -retentionDays)
 	deleted := 0
 
@@ -15,9 +19,10 @@ func Run(basePath string, retentionDays int) error {
 
 	err := filepath.WalkDir(basePath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return nil // skip unreadable entries
+			return nil
 		}
-		if d.IsDir() || filepath.Ext(path) != ".log" {
+		name := filepath.Base(path)
+		if d.IsDir() || (!strings.HasSuffix(name, ".log") && !strings.Contains(name, ".log.")) {
 			return nil
 		}
 		info, err := d.Info()

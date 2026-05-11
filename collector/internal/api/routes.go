@@ -11,4 +11,6 @@ func (s *Server) registerRoutes() {
 	api.HandleFunc("/pods", s.handleListPods).Methods("GET", "OPTIONS")
 	api.HandleFunc("/logs/{namespace}/{pod}", s.handleGetLogs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/download/{namespace}/{pod}", s.handleDownload).Methods("GET")
+	api.HandleFunc("/config", s.handleGetConfig).Methods("GET", "OPTIONS")
+	api.HandleFunc("/config", s.handlePutConfig).Methods("PUT", "OPTIONS")
 }

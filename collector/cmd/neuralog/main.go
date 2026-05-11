@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
+	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/Di3Z1E/neuralog/internal/api"
 	"github.com/Di3Z1E/neuralog/internal/collector"
+	"github.com/Di3Z1E/neuralog/internal/config"
 	"github.com/Di3Z1E/neuralog/internal/hub"
 	"github.com/Di3Z1E/neuralog/internal/janitor"
 	"github.com/Di3Z1E/neuralog/internal/redactor"
@@ -46,8 +48,8 @@ func runServe() {
 	logBase := envOr("NEURALOG_LOG_BASE_PATH", "/mnt/logs")
 	listenAddr := envOr("NEURALOG_LISTEN_ADDR", ":8080")
 	kubeconfig := os.Getenv("KUBECONFIG")
-	excludeNS := strings.Split(envOr("NEURALOG_EXCLUDE_NAMESPACES", "log-system,kube-system"), ",")
-	redactEnabled := envOr("NEURALOG_REDACT_ENABLED", "true") != "false"
+
+	cfgMgr := config.NewManager(logBase)
 
 	var (
 		k8sCfg *rest.Config
@@ -69,26 +71,28 @@ func runServe() {
 		os.Exit(1)
 	}
 
-	st := store.New(logBase)
+	st := store.New(logBase, cfgMgr)
 	h := hub.New()
-	r := redactor.New(redactEnabled)
-	col := collector.New(k8sClient, st, h, r, excludeNS)
+	r := redactor.New(cfgMgr)
+	col := collector.New(k8sClient, st, h, r, cfgMgr)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go h.Run()
 	go col.Run(ctx)
+	go runQuotaWatcher(ctx, cfgMgr, st, logBase)
 
+	cfg := cfgMgr.Get()
 	srv := &http.Server{
 		Addr:        listenAddr,
-		Handler:     api.NewServer(col, st, h),
+		Handler:     api.NewServer(col, st, h, cfgMgr, r),
 		ReadTimeout: 30 * time.Second,
 		// WriteTimeout intentionally unset — streaming responses must not time out
 	}
 
 	go func() {
-		slog.Info("server started", "addr", listenAddr, "redaction", redactEnabled)
+		slog.Info("server started", "addr", listenAddr, "redaction", cfg.RedactEnabled)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			slog.Error("server error", "err", err)
 		}
@@ -108,15 +112,77 @@ func runServe() {
 
 func runJanitor() {
 	logBase := envOr("NEURALOG_LOG_BASE_PATH", "/mnt/logs")
-	days := 7
-	if d := os.Getenv("NEURALOG_RETENTION_DAYS"); d != "" {
-		if n, err := strconv.Atoi(d); err == nil && n > 0 {
-			days = n
-		}
-	}
-	if err := janitor.Run(logBase, days); err != nil {
+	cfgMgr := config.NewManager(logBase)
+	if err := janitor.Run(logBase, cfgMgr); err != nil {
 		slog.Error("janitor failed", "err", err)
 		os.Exit(1)
+	}
+}
+
+// runQuotaWatcher enforces the storage quota by deleting oldest log files
+// when total disk usage exceeds the configured limit.
+func runQuotaWatcher(ctx context.Context, cfgMgr *config.Manager, st *store.Store, logBase string) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			cfg := cfgMgr.Get()
+			if cfg.StorageQuotaGB <= 0 {
+				continue
+			}
+			maxBytes := int64(cfg.StorageQuotaGB * 1024 * 1024 * 1024)
+			if used := st.DiskUsageBytes(); used > maxBytes {
+				enforceQuota(logBase, maxBytes)
+			}
+		}
+	}
+}
+
+func enforceQuota(logBase string, maxBytes int64) {
+	type logFile struct {
+		path  string
+		mtime time.Time
+		size  int64
+	}
+	var files []logFile
+	var total int64
+
+	filepath.WalkDir(logBase, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if !strings.HasSuffix(name, ".log") && !strings.Contains(name, ".log.") {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		files = append(files, logFile{path, info.ModTime(), info.Size()})
+		total += info.Size()
+		return nil
+	})
+
+	if total <= maxBytes {
+		return
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].mtime.Before(files[j].mtime)
+	})
+
+	for _, f := range files {
+		if total <= maxBytes {
+			break
+		}
+		if err := os.Remove(f.path); err == nil {
+			slog.Info("quota: evicted", "file", f.path, "freed_mb", f.size/1024/1024)
+			total -= f.size
+		}
 	}
 }
 
