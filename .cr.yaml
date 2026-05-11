@@ -1,0 +1,5 @@
+owner: Di3Z1E
+git-repo: NeuraLog
+charts-dir: helm
+pages-branch: gh-pages
+packages-with-index: true

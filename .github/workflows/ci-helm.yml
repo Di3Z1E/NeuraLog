@@ -1,0 +1,63 @@
+name: CI / Helm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'helm/**'
+      - '.github/workflows/ci-helm.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'helm/**'
+      - '.github/workflows/ci-helm.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: '3.14.x'
+
+      - name: Lint with default values
+        run: |
+          helm lint helm/neuralog \
+            --set image.collector.tag=ci \
+            --set image.ui.tag=ci \
+            --strict
+
+      - name: Lint with test values
+        run: helm lint helm/neuralog -f helm/neuralog/test-values.yaml --strict
+
+  template:
+    name: Template Render
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: '3.14.x'
+
+      - name: Render all templates
+        run: |
+          helm template neuralog helm/neuralog \
+            --set image.collector.tag=ci \
+            --set image.ui.tag=ci \
+            --namespace log-system \
+            --debug
+
+      - name: Render with ingress enabled
+        run: |
+          helm template neuralog helm/neuralog \
+            --set image.collector.tag=ci \
+            --set image.ui.tag=ci \
+            --set ingress.enabled=true \
+            --set ingress.host=logs.example.com \
+            --namespace log-system \
+            --debug
