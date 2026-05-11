@@ -1,9 +1,9 @@
 services:
-  collector:
+  neuralog:
     build:
       context: .
-      dockerfile: docker/collector.Dockerfile
-    image: ghcr.io/di3z1e/neuralog-collector:dev
+      dockerfile: docker/neuralog.Dockerfile
+    image: ghcr.io/di3z1e/neuralog:dev
     ports:
       - "8080:8080"
     environment:
@@ -17,22 +17,10 @@ services:
       - ${HOME}/.kube:/root/.kube:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "/neuralog", "healthz"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-
-  ui:
-    build:
-      context: .
-      dockerfile: docker/ui.Dockerfile
-    image: ghcr.io/di3z1e/neuralog-ui:dev
-    ports:
-      - "80:80"
-    depends_on:
-      collector:
-        condition: service_healthy
-    restart: unless-stopped
 
 volumes:
   log-data:

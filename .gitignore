@@ -3,6 +3,10 @@ collector/vendor/
 collector/coverage.out
 collector/*.test
 
+# Embedded UI dist — populated at Docker build time; .gitkeep stays tracked
+collector/internal/ui/dist/*
+!collector/internal/ui/dist/.gitkeep
+
 # Node
 ui/node_modules/
 ui/dist/

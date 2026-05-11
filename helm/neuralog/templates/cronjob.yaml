@@ -29,8 +29,8 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: janitor
-              image: {{ include "neuralog.collectorImage" . }}
-              imagePullPolicy: {{ .Values.image.collector.pullPolicy }}
+              image: {{ include "neuralog.image" . }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
               command: ["/neuralog", "janitor"]
               envFrom:
                 - configMapRef:
