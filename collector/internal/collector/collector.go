@@ -115,7 +115,6 @@ func (c *Collector) handlePod(pod *corev1.Pod) {
 		Name:      pod.Name,
 		Status:    string(pod.Status.Phase),
 		Node:      pod.Spec.NodeName,
-		HasLogs:   c.store.HasLogs(pod.Namespace, pod.Name),
 	}
 
 	switch pod.Status.Phase {
@@ -173,6 +172,7 @@ func (c *Collector) ListPods() []*PodInfo {
 	out := make([]*PodInfo, 0, len(c.pods))
 	for _, p := range c.pods {
 		cp := *p
+		cp.HasLogs = c.store.HasLogs(cp.Namespace, cp.Name)
 		out = append(out, &cp)
 	}
 	return out

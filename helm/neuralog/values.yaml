@@ -24,7 +24,7 @@ retention:
 
 # ─── Storage ──────────────────────────────────────────────────────────────────
 storage:
-  storageClassName: "local-path"
+  storageClassName: ""   # leave empty to use the cluster's default StorageClass
   storageSize: 10Gi
   accessMode: ReadWriteOnce
 

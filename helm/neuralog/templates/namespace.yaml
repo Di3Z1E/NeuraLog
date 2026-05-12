@@ -1,8 +1,2 @@
-{{- if .Values.namespaceOverride }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.namespaceOverride }}
-  labels:
-    {{- include "neuralog.labels" . | nindent 4 }}
-{{- end }}
+{{- /* Namespace is intentionally not managed by this chart.
+     Use --create-namespace on helm install/upgrade (see Makefile). */ -}}

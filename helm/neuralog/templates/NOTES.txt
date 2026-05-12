@@ -22,8 +22,7 @@ Version:    {{ .Chart.AppVersion }}
 ━━━ Check collector logs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   kubectl logs -n {{ include "neuralog.namespace" . }} \
-    -l app.kubernetes.io/instance={{ .Release.Name }} \
-    -c collector -f
+    -l app.kubernetes.io/instance={{ .Release.Name }} -f
 
 ━━━ Storage ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

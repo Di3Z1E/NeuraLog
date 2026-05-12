@@ -1,19 +1,15 @@
-# Local k3s test values — uses local registry, local-path storage
+# Minimal values for CI / helm lint — fast pull, no autoscaling, no ingress.
 image:
-  repository: localhost:5000/neuralog
+  repository: ghcr.io/di3z1e/neuralog
   tag: "dev"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 storage:
-  storageClassName: "local-path"
-  storageSize: 5Gi
-  accessMode: ReadWriteOnce
+  storageClassName: "standard"
+  storageSize: 1Gi
 
 retention:
-  days: 7
-
-collector:
-  redactEnabled: true
+  days: 1
 
 autoscaling:
   enabled: false

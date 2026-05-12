@@ -5,7 +5,7 @@ HELM_CHART     := helm/neuralog
 NAMESPACE      ?= log-system
 RELEASE        ?= neuralog
 
-.PHONY: help build push test lint helm-lint dev dev-down deploy upgrade uninstall clean
+.PHONY: help build push test lint helm-lint dev dev-down deploy uninstall uninstall-full clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -43,22 +43,19 @@ dev-down: ## Tear down local dev stack
 	docker compose -f docker-compose.yml -f docker-compose.override.yml down -v
 
 # ── Helm deploy ────────────────────────────────────────────────────────────────
-deploy: ## Install the Helm chart (first time)
+deploy: ## Install or upgrade on any cluster — idempotent, safe to re-run
 	helm upgrade --install $(RELEASE) $(HELM_CHART) \
 	  --namespace $(NAMESPACE) \
 	  --create-namespace \
-	  --set image.tag=$(TAG) \
+	  $(if $(VALUES),-f $(VALUES),) \
 	  --wait
 
-upgrade: ## Upgrade an existing release
-	helm upgrade $(RELEASE) $(HELM_CHART) \
-	  --namespace $(NAMESPACE) \
-	  --set image.tag=$(TAG) \
-	  --reuse-values \
-	  --wait
-
-uninstall: ## Uninstall the Helm release (PVC is retained)
+uninstall: ## Remove the release; namespace and PVC are kept
 	helm uninstall $(RELEASE) --namespace $(NAMESPACE)
+
+uninstall-full: ## Remove the release and delete the namespace (all log data lost)
+	helm uninstall $(RELEASE) --namespace $(NAMESPACE) || true
+	kubectl delete namespace $(NAMESPACE) --ignore-not-found --wait
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 clean: ## Remove build artifacts

@@ -8,7 +8,9 @@ metadata:
 spec:
   accessModes:
     - {{ .Values.storage.accessMode }}
+  {{- if .Values.storage.storageClassName }}
   storageClassName: {{ .Values.storage.storageClassName | quote }}
+  {{- end }}
   resources:
     requests:
       storage: {{ .Values.storage.storageSize }}

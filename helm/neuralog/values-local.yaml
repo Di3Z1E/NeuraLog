@@ -1,0 +1,12 @@
+# Overrides for a local cluster (local-path storage, NodePort, no NetworkPolicy).
+# Use with: helm upgrade --install neuralog helm/neuralog --namespace log-system --create-namespace -f helm/neuralog/values-local.yaml --wait
+
+storage:
+  storageClassName: "local-path"
+  storageSize: 5Gi
+
+service:
+  type: NodePort
+
+networkPolicy:
+  enabled: false
